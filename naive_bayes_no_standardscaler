@@ -1,0 +1,84 @@
+'''Testando o Accuracy Score do Naïve Bayes sem o escalonamento - Parte 1'''
+
+# Primera parte - Tratamento da base de dados, e salvar as variáveis sem o escalonamento (Pré-Processamento)
+
+
+import pandas as pd
+import numpy as np
+import pickle
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.model_selection import train_test_split
+
+base_census = pd.read_csv('/content/drive/MyDrive/Machine Learning/Download/Bases de dados/census.csv') # Leitura da Base de Dados
+X_census = base_census.iloc[:, 0:14].values # Tabela de Previsores
+y_census = base_census.iloc[:, 14] # Tabela das Classes
+
+# Tratamento de Atributos Categóricos com LabelEncoder, OneHotEncoder e ColumnTransformer
+
+#Label Encoder
+label_encoder_workclass = LabelEncoder()
+label_encoder_education = LabelEncoder()
+label_encoder_marital = LabelEncoder()
+label_encoder_occupation = LabelEncoder()
+label_encoder_relationship = LabelEncoder()
+label_encoder_race = LabelEncoder()
+label_encoder_sex = LabelEncoder()
+label_encoder_country = LabelEncoder()
+
+# Escrever direto na variável dos Previsores
+X_census[:,1] = label_encoder_workclass.fit_transform(X_census[: , 1])
+X_census[:,3] = label_encoder_education.fit_transform(X_census[: , 3])
+X_census[:,5] = label_encoder_marital.fit_transform(X_census[: , 5])
+X_census[:,6] = label_encoder_occupation.fit_transform(X_census[: , 6])
+X_census[:,7] = label_encoder_relationship.fit_transform(X_census[: , 7])
+X_census[:,8] = label_encoder_race.fit_transform(X_census[: , 8])
+X_census[:,9] = label_encoder_sex.fit_transform(X_census[: , 9])
+X_census[:,13] = label_encoder_country.fit_transform(X_census[: , 13])
+
+# OneHotEncoder
+onehotencoder_census = ColumnTransformer(transformers= [('OneHot', OneHotEncoder(), [1, 3, 5, 6, 7, 8, 9, 13])], remainder='passthrough')
+X_census = onehotencoder_census.fit_transform(X_census).toarray()
+
+# Divisão das tabelas de Treinamento e Teste
+X_census_treinamento, X_census_teste, y_census_treinamento, y_census_teste = train_test_split (X_census, y_census, test_size = 0.45, random_state = 0)
+
+# Salvar as variáveis
+with open('census_sem_escalonamento.pkl', mode = 'wb') as f:
+  pickle.dump ([X_census_treinamento, y_census_treinamento,X_census_teste, y_census_teste], f)
+  
+  -----------------------------------------------------------------------------------------------------------------------------------------------------
+  
+  from sklearn import naive_bayes
+'''Testando o Accuracy Score do Naïve Bayes sem o escalonamento - Parte 2'''
+
+# Segunda Parte - Usar o arquivo das variáveis salvas e aplicar o Naive Bayes
+
+# Importanto biblioteca do Naive Bayes e outras bibliotecas para visualização do Naive Bayes
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from yellowbrick.classifier import ConfusionMatrix
+
+# Abrindo as variáveis sem escalonamento
+with open('/content/census_sem_escalonamento.pkl', 'rb') as f:
+  X_census_treinamento, y_census_treinamento, X_census_teste, y_census_teste = pickle.load(f)
+
+# Criando Objeto Naive Bayes e criando a tabela de probabilidades
+nb_census = GaussianNB()
+nb_census.fit(X_census_treinamento, y_census_treinamento)
+
+# Criando uma previsao
+predict_census = nb_census.predict(X_census_teste)
+
+# Teste de Precisão
+#print(accuracy_score(y_census_teste,predict_census))
+#print()
+# Visualização da ConfusionMatrix e ClassificationReport
+#print(confusion_matrix(y_census_teste, predict_census))
+#print()
+#print(classification_report(y_census_teste, predict_census))
+
+# Visualização com YellowBrick
+cm = ConfusionMatrix(nb_census)
+cm.fit(X_census_treinamento, y_census_treinamento)
+cm.score(X_census_teste, y_census_teste)
